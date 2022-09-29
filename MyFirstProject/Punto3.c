@@ -79,7 +79,7 @@ int main(void) {
     TRISEbits.TRISE8 = 1; // set the pin as input for the button
     int oldstate;
     while(1){
-        pressed = PORTDbits.RD3;
+        pressed = PORTEbits.RE8;
         if (pressed != oldstate) {
             flag == 0;  
         }

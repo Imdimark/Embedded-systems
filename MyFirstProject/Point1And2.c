@@ -67,7 +67,7 @@ void SetOffLed() {
 }
 
 void TriggerOnOff() {
-    pressed = PORTDbits.RD3;
+    pressed = PORTEbits.RE8;
     if (pressed == 1){
         SetOnLed(); 
     }
