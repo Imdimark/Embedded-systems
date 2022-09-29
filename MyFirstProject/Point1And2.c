@@ -79,10 +79,10 @@ void TriggerOnOff() {
 int main(void) {
     //SetOnLed();
     TRISBbits.TRISB0 = 0; // set the pin as output for led
-    TRISEbits.TRISE3 = 1; // set the pin as input for the button
+    TRISEbits.TRISE8 = 1; // set the pin as input for the button
     while(1){
         TriggerOnOff();          
-        __delay_ms(10);
+        //__delay_ms(10);
     }     
     return 0;
 }

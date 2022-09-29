@@ -76,7 +76,7 @@ void TriggerOnOff() {
 int main(void) {
     int flag = 0; //flag 0 means you have the possibility to change led's state
     TRISBbits.TRISB0 = 0; // set the pin as output for led
-    TRISEbits.TRISE3 = 1; // set the pin as input for the button
+    TRISEbits.TRISE8 = 1; // set the pin as input for the button
     int oldstate;
     while(1){
         pressed = PORTDbits.RD3;
@@ -90,7 +90,7 @@ int main(void) {
             flag = 1;   
         }      
         oldstate = pressed;
-            __delay_ms(10);
+            //__delay_ms(10);
     }     
     return 0;
 }
