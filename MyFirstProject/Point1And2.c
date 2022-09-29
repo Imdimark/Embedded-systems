@@ -50,7 +50,7 @@
 
 #include <xc.h>
 #include <unistd.h>
-#include <delay.h>
+//#include <delay.h>
 
 
 int pressed = 0; 
@@ -82,7 +82,7 @@ int main(void) {
     TRISEbits.TRISE3 = 1; // set the pin as input for the button
     while(1){
         TriggerOnOff();          
-        delay_ms(10);
+        __delay_ms(10);
     }     
     return 0;
 }
