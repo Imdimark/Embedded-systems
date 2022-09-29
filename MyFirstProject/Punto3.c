@@ -86,7 +86,7 @@ int main(void) {
         
         if (flag == 0){
             TriggerOnOff();          
-            __delay_ms(10);
+            //__delay_ms(10);
             flag = 1;   
         }      
         oldstate = pressed;
