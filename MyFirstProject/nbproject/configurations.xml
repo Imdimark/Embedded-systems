@@ -42,7 +42,6 @@
       <compileType>
         <linkerTool>
           <linkerLibItems>
-            <linkerLibFileItem>../Librerie aggiunte/delay.c</linkerLibFileItem>
             <linkerLibFileItem>../Librerie aggiunte/delay.h</linkerLibFileItem>
           </linkerLibItems>
         </linkerTool>
