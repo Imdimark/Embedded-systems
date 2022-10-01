@@ -52,7 +52,6 @@
 #include <unistd.h>
 
 int pressed = 0; 
-
 void SetOnLed();
 void SetOffLed();
 void TriggerOnOff();
@@ -63,7 +62,6 @@ void SetOnLed() { //It is also the first point
 void SetOffLed() {
     LATBbits.LATB0 = 0; // set the pin high
 }
-
 void TriggerOnOff() {
     if (pressed == 1){
         SetOnLed(); 
@@ -72,7 +70,19 @@ void TriggerOnOff() {
         SetOffLed ();
     } 
 }
-
+//-------------------------------
+void DelayTimer1Init(void) { // Set up timer 1 for microsecond delay function
+    T1CON = 0x0000; // Timer off, 16-bit, 1:1 prescale, gating off
+}
+void UsDelay(unsigned int udelay) {
+    TMR1 = 0;
+    PR1 = udelay * 15; // Number of ticks per microsecond
+    IFS0bits.T1IF = 0; // Reset interrupt flag
+    T1CONbits.TON = 1;
+    while (!IFS0bits.T1IF); // Wait here for timeout
+    T1CONbits.TON = 0;
+}
+//-------------------------------
 int main(void) {
     int flag = 0; //flag 0 means you have the possibility to change led's state
     TRISBbits.TRISB0 = 0; // set the pin as output for led
@@ -83,14 +93,13 @@ int main(void) {
         if (pressed != oldstate) {
             flag == 0;  
         }
-        
         if (flag == 0){
             TriggerOnOff();          
             //__delay_ms(10);
             flag = 1;   
         }      
         oldstate = pressed;
-            //__delay_ms(10);
+        UsDelay(1000);
     }     
     return 0;
 }

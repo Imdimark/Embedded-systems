@@ -47,14 +47,11 @@
 
 // #pragma config statements should precede project file includes.
 // Use project enums instead of #define for ON and OFF.
-
 #include <xc.h>
 #include <unistd.h>
-//#include <delay.h>
-
-
+#define _XT_FREQ (73728)
+#include <libpic30.h>
 int pressed = 0; 
-
 void SetOnLed();
 void SetOffLed();
 void TriggerOnOff();
@@ -65,7 +62,6 @@ void SetOnLed() { //It is also the first point
 void SetOffLed() {
     LATBbits.LATB0 = 0; // set the pin high
 }
-
 void TriggerOnOff() {
     pressed = PORTEbits.RE8;
     if (pressed == 1){
@@ -75,14 +71,26 @@ void TriggerOnOff() {
         SetOffLed ();
     } 
 }
+//-------------------------------
+void DelayTimer1Init(void) { // Set up timer 1 for microsecond delay function
+    T1CON = 0x0000; // Timer off, 16-bit, 1:1 prescale, gating off
+}
+void UsDelay(unsigned int udelay) {
+    TMR1 = 0;
+    PR1 = udelay * 15; // Number of ticks per microsecond
+    IFS0bits.T1IF = 0; // Reset interrupt flag
+    T1CONbits.TON = 1;
+    while (!IFS0bits.T1IF); // Wait here for timeout
+    T1CONbits.TON = 0;
+}
+//-------------------------------
 
 int main(void) {
-    //SetOnLed();
     TRISBbits.TRISB0 = 0; // set the pin as output for led
     TRISEbits.TRISE8 = 1; // set the pin as input for the button
     while(1){
         TriggerOnOff();          
-        //__delay_ms(10);
+        UsDelay(1000);
     }     
     return 0;
 }
