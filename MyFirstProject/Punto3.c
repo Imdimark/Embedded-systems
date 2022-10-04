@@ -1,18 +1,11 @@
 /*
  * File:   main.c
- * Author: giova
+ * Author: Aldo
  *
- * Created on 27 settembre 2022, 11.18
+
 ------------pin a disposizione------------------
  * switch s5 = pin 17 --> RE8
-  
- * switch s6 = pin 23 --> RD0
-  
  * led d3 = pin 2 --> RB0
-  
- * led d4 = pin 3 --> RB1
-  
- * scelgo witch s5 e led d3
  */
 
 // DSPIC30F4011 Configuration Bit Settings
@@ -51,54 +44,61 @@
 #include <xc.h>
 #include <unistd.h>
 
-int pressed = 0; 
+
+
+
+int led = 0;
 void SetOnLed();
 void SetOffLed();
-void TriggerOnOff();
+
+
 
 void SetOnLed() { //It is also the first point
-    LATBbits.LATB0 = 1; // set the pin high
+    LATDbits.LATD3 = 1;
+    
 }
 void SetOffLed() {
-    LATBbits.LATB0 = 0; // set the pin high
+    LATDbits.LATD3 = 0;
+    
+    
 }
-void TriggerOnOff() {
-    if (pressed == 1){
-        SetOnLed(); 
-    }
-    else if (pressed == 0){
-        SetOffLed ();
-    } 
+
+
+char UART_get_char()   
+{
+
+    
+    while(!U2RXREG);  // hold the program till RX buffer is free
+    
+    return U2RXREG; //receive the value and send it to main function
 }
-//-------------------------------
-void DelayTimer1Init(void) { // Set up timer 1 for microsecond delay function
-    T1CON = 0x0000; // Timer off, 16-bit, 1:1 prescale, gating off
-}
-void UsDelay(unsigned int udelay) {
-    TMR1 = 0;
-    PR1 = udelay * 15; // Number of ticks per microsecond
-    IFS0bits.T1IF = 0; // Reset interrupt flag
-    T1CONbits.TON = 1;
-    while (!IFS0bits.T1IF); // Wait here for timeout
-    T1CONbits.TON = 0;
-}
-//-------------------------------
+//_____________End of function________________//
 int main(void) {
-    int flag = 0; //flag 0 means you have the possibility to change led's state
-    TRISBbits.TRISB0 = 0; // set the pin as output for led
-    TRISEbits.TRISE8 = 1; // set the pin as input for the button
-    int oldstate;
+    
+    TRISBbits.TRISB0 = 0; //OUTPUT
+    TRISEbits.TRISE8 = 1; // INPUT
+   
+    
     while(1){
-        pressed = PORTEbits.RE8;
-        if (pressed != oldstate) {
-            flag == 0;  
-        }
-        if (flag == 0){
-            TriggerOnOff();          
-            flag = 1;   
-        }      
-        oldstate = pressed;
-        UsDelay(1000);
-    }     
-    return 0;
-}
+  
+        int pressed = PORTEbits.RE8;
+        SetOffLed();
+        if(pressed == 0 && led == 1){
+        SetOffLed();
+        led = 1;
+    }
+        else if(pressed == 0 && led == 0){
+        SetOnLed();
+        led = 0;
+    }
+        
+        
+    }
+    
+    
+    
+    
+    
+    
+    
+    return 0;} 
