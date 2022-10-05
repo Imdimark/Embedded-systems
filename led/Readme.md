@@ -1,5 +1,3 @@
-DSPIC30F4011 board
-
 Project 
 -------
 
