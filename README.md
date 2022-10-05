@@ -1,6 +1,6 @@
 # Embedded-systems
 
-<em>Borad : <em>
+<em>Board:  DSPIC30F4011 <em>
 
 ## Exercises
 
