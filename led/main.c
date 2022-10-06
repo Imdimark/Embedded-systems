@@ -1,11 +1,18 @@
 /*
  * File:   main.c
- * Author: Aldo
+ * Author: giova
  *
-
+ * Created on 27 settembre 2022, 11.18
 ------------pin a disposizione------------------
  * switch s5 = pin 17 --> RE8
+  
+ * switch s6 = pin 23 --> RD0
+  
  * led d3 = pin 2 --> RB0
+  
+ * led d4 = pin 3 --> RB1
+  
+ * scelgo witch s5 e led d3
  */
 
 // DSPIC30F4011 Configuration Bit Settings
@@ -40,65 +47,50 @@
 
 // #pragma config statements should precede project file includes.
 // Use project enums instead of #define for ON and OFF.
-
 #include <xc.h>
 #include <unistd.h>
-
-
-
-
-int led = 0;
+#define _XT_FREQ (73728)
+#include <libpic30.h>
+int pressed = 0; 
 void SetOnLed();
 void SetOffLed();
-
-
+void TriggerOnOff();
 
 void SetOnLed() { //It is also the first point
-    LATDbits.LATD3 = 1;
-    
+    LATBbits.LATB0 = 1; // set the pin high
 }
 void SetOffLed() {
-    LATDbits.LATD3 = 0;
-    
-    
+    LATBbits.LATB0 = 0; // set the pin high
 }
-
-
-char UART_get_char()   
-{
-
-    
-    while(!U2RXREG);  // hold the program till RX buffer is free
-    
-    return U2RXREG; //receive the value and send it to main function
+void TriggerOnOff() {
+    pressed = PORTEbits.RE8;
+    if (pressed == 1){
+        SetOnLed(); 
+    }
+    else if (pressed == 0){
+        SetOffLed ();
+    } 
 }
-//_____________End of function________________//
+//-------------------------------
+void DelayTimer1Init(void) { // Set up timer 1 for microsecond delay function
+    T1CON = 0x0000; // Timer off, 16-bit, 1:1 prescale, gating off
+}
+void UsDelay(unsigned int udelay) {
+    TMR1 = 0;
+    PR1 = udelay * 15; // Number of ticks per microsecond
+    IFS0bits.T1IF = 0; // Reset interrupt flag
+    T1CONbits.TON = 1;
+    while (!IFS0bits.T1IF); // Wait here for timeout
+    T1CONbits.TON = 0;
+}
+//-------------------------------
+
 int main(void) {
-    
-    TRISBbits.TRISB0 = 0; //OUTPUT
-    TRISEbits.TRISE8 = 1; // INPUT
-   
-    
+    TRISBbits.TRISB0 = 0; // set the pin as output for led
+    TRISEbits.TRISE8 = 1; // set the pin as input for the button
     while(1){
-  
-        int pressed = PORTEbits.RE8;
-        SetOffLed();
-        if(pressed == 0 && led == 1){
-        SetOffLed();
-        led = 1;
-    }
-        else if(pressed == 0 && led == 0){
-        SetOnLed();
-        led = 0;
-    }
-        
-        
-    }
-    
-    
-    
-    
-    
-    
-    
-    return 0;} 
+        TriggerOnOff();          
+        UsDelay(1000);
+    }     
+    return 0;
+}
