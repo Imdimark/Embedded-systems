@@ -67,29 +67,33 @@ void SetOffLed() {
 }
 
 void tmr_setup_period(int timer, int ms){
+    TMR1=0; //reset timer counter, appena raggi8unge i 500ms lo fa automaticamente
+    T1CONbits.TON = 1; // starts the timer!
+    
+}
+void tmr_wait_period(int timer){
+    int flag = 0;
+    while (flag = 1){
+        if (IFS0bits.T1IF == 1){
+            flag = 1;
+            IFS0bits.T1IF //reset del flag
+        }
+    }
+}
+
+int main(void) {
     int Clock_Steps = (FOSc/4) * (timer/1000);
     // 7372800Hz/4 = 1.843.200 Hz // 1.843.200 Hz * 0.5 s = 921.600 Clock >> limite
     // Timer, has a prescale option of 1:1, 1:8, 1:64, and 1:256 00 01 «10» 11
     // 921.600 / 6
     PR1 =14.400; // (FOSc/4)/64 < limite
     T1CONbits.TCKPS = 2; // prescaler 1:64 
-    
-}
-void tmr_wait_period(int timer){
-    TMR1=0; //reset timer counter
-    
-    
-    
-    T1CONbits.TON = 1; // starts the timer!
-}
-
-int main(void) {
     TRISBbits.TRISB0 = 0; // set the pin as output for led
-    tmr_setup_period(TIMER1, 500);
-    TMR1=0; //reset timer counter for the first loop 
-    while(1){  
-        //code SetOnLed();
+    while(1){
+        tmr_setup_period(TIMER1, 500);
+        SetOnLed();
         tmr_wait_period(TIMER1); //code + timer is 500. at the end it must restart the timer, every loop 500ms
+        SetOffLed();
     }
     return 0;
 }
