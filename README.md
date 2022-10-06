@@ -4,8 +4,8 @@
 
 ## Exercises
 
-* LED
-* TIMER
+1) LED
+1) TIMER
 
 ## Authors
 
