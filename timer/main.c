@@ -55,8 +55,10 @@
 #define TIMER1 1 
 #define TIMER2 2
 #define FOSc 7372800 //Hz
+#define prescaler 2 // prescaler 1:64 // Timer, has a prescale option of 1:1, 1:8, 1:64, and 1:256 00 01 «10» 11
 void tmr_setup_period(int timer, int ms);
 void tmr_wait_period(int timer);
+void tmr_wait_ms(int timer, int ms);
 void SetOnLed();
 void SetOffLed();
 void SetOnLed() { //It is also the first point
@@ -67,33 +69,50 @@ void SetOffLed() {
 }
 
 void tmr_setup_period(int timer, int ms){
-    TMR1=0; //reset timer counter, appena raggi8unge i 500ms lo fa automaticamente
-    T1CONbits.TON = 1; // starts the timer!
+    int prescaler = 2;
+    float Clock_Steps = (FOSc/4) * (ms/1000);
+    // 7372800Hz/4 = 1.843.200 Hz // 1.843.200 Hz * 0.5 s = 921.600 Clock >> limite
+    // Timer, has a prescale option of 1:1, 1:8, 1:64, and 1:256 00 01 «10» 11
+    // 921.600 / 64 = 14400 < 65535
+    PR1 = (Clock_Steps/ prescaler) // (FOSc/4)/64 < limite
+    T1CONbits.TCKPS = prescaler; // prescaler 1:64 
     
+    
+    
+    TMR1=0; //reset timer counter, appena raggi8unge i 500ms lo fa automaticamente
+
+    T1CONbits.TON = 1; // starts the timer!
+
 }
 void tmr_wait_period(int timer){
     int flag = 0;
     while (flag = 1){
         if (IFS0bits.T1IF == 1){
             flag = 1;
-            IFS0bits.T1IF //reset del flag
+            IFS0bits.T1IF = 0; // Clear flag
         }
     }
 }
+void tmr_wait_ms(int timer, int ms){
+    tmr_setup_period(TIMER1, ms
+    tmr_wait_period(TIMER1); //code + timer is 500. at the end it must restart the timer, every loop 500ms
+}
+
 
 int main(void) {
-    int Clock_Steps = (FOSc/4) * (timer/1000);
-    // 7372800Hz/4 = 1.843.200 Hz // 1.843.200 Hz * 0.5 s = 921.600 Clock >> limite
-    // Timer, has a prescale option of 1:1, 1:8, 1:64, and 1:256 00 01 «10» 11
-    // 921.600 / 6
-    PR1 =14.400; // (FOSc/4)/64 < limite
-    T1CONbits.TCKPS = 2; // prescaler 1:64 
     TRISBbits.TRISB0 = 0; // set the pin as output for led
     while(1){
+        //int ms = ; //inserisco da bottone?
+        void tmr_wait_ms(int timer, int ms);
+        
+        
+        /*2 punto
         tmr_setup_period(TIMER1, 500);
         SetOnLed();
         tmr_wait_period(TIMER1); //code + timer is 500. at the end it must restart the timer, every loop 500ms
+        tmr_setup_period(TIMER2, 500);
         SetOffLed();
+        tmr_wait_period(TIMER2); //code + timer is 500. at the end it must restart the timer, every loop 500ms */
     }
     return 0;
 }
