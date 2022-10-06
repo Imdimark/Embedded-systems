@@ -52,7 +52,7 @@
 #include <xc.h>
 #include <unistd.h>
 
-ssssssssss
+sss
 
 #include "xc.h"
 
