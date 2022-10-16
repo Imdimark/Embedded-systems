@@ -52,67 +52,52 @@
 #include <xc.h>
 #include <unistd.h>
 #include "xc.h"
-#define TIMER1 1 
-#define TIMER2 2
-#define FOSc 7372800 //Hz
-#define prescaler 2 // prescaler 1:64 // Timer, has a prescale option of 1:1, 1:8, 1:64, and 1:256 00 01 «10» 11
-void tmr_setup_period(int timer, int ms);
-void tmr_wait_period(int timer);
-void tmr_wait_ms(int timer, int ms);
-void SetOnLed();
-void SetOffLed();
-void SetOnLed() { //It is also the first point
-    LATBbits.LATB0 = 1; // set the pin high
-}
-void SetOffLed() {
-    LATBbits.LATB0 = 0; // set the pin high
-}
-
-void tmr_setup_period(int timer, int ms){
-    int prescaler = 2;
-    float Clock_Steps = (FOSc/4) * (ms/1000);
-    // 7372800Hz/4 = 1.843.200 Hz // 1.843.200 Hz * 0.5 s = 921.600 Clock >> limite
-    // Timer, has a prescale option of 1:1, 1:8, 1:64, and 1:256 00 01 «10» 11
-    // 921.600 / 64 = 14400 < 65535
-    PR1 = (Clock_Steps/ prescaler) // (FOSc/4)/64 < limite
-    T1CONbits.TCKPS = prescaler; // prescaler 1:64 
-    
-    
-    
-    TMR1=0; //reset timer counter, appena raggi8unge i 500ms lo fa automaticamente
-
-    T1CONbits.TON = 1; // starts the timer!
-
-}
-void tmr_wait_period(int timer){
-    int flag = 0;
-    while (flag = 1){
-        if (IFS0bits.T1IF == 1){
-            flag = 1;
-            IFS0bits.T1IF = 0; // Clear flag
-        }
+void choose_prescaler(int ms, int *tckps, int *pr){
+    long ticks = 1843.2*ms;
+    if (ticks <= 65535){
+        *tckps = 0;
+        *pr = ticks;
     }
-}
-void tmr_wait_ms(int timer, int ms){
-    tmr_setup_period(TIMER1, ms
-    tmr_wait_period(TIMER1); //code + timer is 500. at the end it must restart the timer, every loop 500ms
+    ticks = ticks/8;
+    if (ticks <= 65535){
+        *tckps = 1;
+        *pr = ticks;
+    }
+    ticks = ticks/8;
+    if (ticks <= 65535){
+        *tckps = 2;
+        *pr = ticks;
+    }
+    ticks = ticks/4;
+    if (ticks <= 65535){
+        *tckps = 3;
+        *pr = ticks;
+    }  
 }
 
+void tmr1_setup_period(int ms){
+    T1CONbits.TON = 0;
+    TMR1 = 0;
+    int tckps, pr;
+    choose_prescaler(ms, &tckps, &pr);
+    T1CONbits.TCKPS = tckps;
+    PR1 = pr;
+    T1CONbits.TON = 1;
+    return;
+}
+
+void tmr1_wait_period(){
+    while(IFS0bits.T1IF==0){ //exit only when timer1 has expired
+        IFS0bits.T1IF=0; //reset timer
+    }
+    
+}
 
 int main(void) {
-    TRISBbits.TRISB0 = 0; // set the pin as output for led
-    while(1){
-        //int ms = ; //inserisco da bottone?
-        void tmr_wait_ms(int timer, int ms);
-        
-        
-        /*2 punto
-        tmr_setup_period(TIMER1, 500);
-        SetOnLed();
-        tmr_wait_period(TIMER1); //code + timer is 500. at the end it must restart the timer, every loop 500ms
-        tmr_setup_period(TIMER2, 500);
-        SetOffLed();
-        tmr_wait_period(TIMER2); //code + timer is 500. at the end it must restart the timer, every loop 500ms */
+    TRISBbits.TRISB0=0;
+    tmr1_setup_period(500);
+    while(1){ //thisloopisexecutedonceevery500ms 
+        LATBbits.LATB0=!LATBbits.LATB0;//toggleandwritethevaluetothepin 
+        tmr1_wait_period();//waitwhatisneededforthenextloop 
     }
-    return 0;
 }
