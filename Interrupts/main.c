@@ -99,30 +99,28 @@ void tmr2_setup_period(int ms){
     return;
 }
 
+
 void tmr1_wait_period(){
     while(IFS0bits.T1IF==0){ //exit only when timer1 has expired
-        if (TMR1 == 250){
-            IFS0bits.T2IF=0;
-        }
         IFS0bits.T1IF=0; //reset timer
+        IFS0bits.T2IF=0; //resetta timer 2 per la seconda volta a fine 500, quindi 0--primo-->250--secondo-->500
     }
     
 }
 
 void __attribute__ ((__interrupt__, __auto_psv__ )) _T2Interrupt(){
+    IFS0bits.T1IF=0; //entra, resetta il timer prima volta ciclo così riparte
     
     IFS0bits.INT0IF = 0; // reset interrupt flag
     
     LATBbits.LATB1=!LATBbits.LATB1;//toggleandwritethevaluetothepin 
- 
+    
 }
-
-
-
-
 
 int main(void) {
     IEC0bits.INT0IE = 1; //enable int0 interrupt
+    
+    IEC0bits.T2IE = 1; //enable timer2 interrupt, every time that IFS0bits.T2IF becomes 1
     
     TRISBbits.TRISB0=0;
     TRISBbits.TRISB1=0;
