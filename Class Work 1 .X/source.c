@@ -1,5 +1,6 @@
 #include "header.h"
 
+
 /*Timer Functions*/
 void choose_prescaler(int ms, int* tckps, int* pr){
     //Fcy = 1843200 Hz ?> 1843,2 clock ticks in 1 ms
@@ -137,6 +138,7 @@ void tmr_wait_ms(int timer, int ms) {
     return;
 }
 
+
 /*SPI Functions*/
 void spi_put_char(char c) {
     while(SPI1STATbits.SPITBF == 1);
@@ -163,8 +165,7 @@ void spi_move_cursor(int row, int column) {
 
 void spi_clear_first_row() {
     spi_move_cursor(FIRST_ROW, 0);
-    int i = 0;
-    for(i = 0; i < 16; i++) {
+    for(int i = 0; i < 16; i++) {
         spi_put_char(' ');
     }
 }
@@ -181,18 +182,21 @@ void spi_clear_second_row() {
 /*UART Functions*/
 void write_first_row(int count){
     // Char read from UART and sent to LCD
+    /*U2STAbits.URXDA == 1 indicates that the receive buffer has data available. URXDA = 0 implies that the
+    buffer is empty. If a user attempts to read an empty buffer, the old values in the buffer will be read and no
+    data shift will occur within the FIFO.*/
     while (U2STAbits.URXDA == 1){
-        char c  = U2RXREG;
+        char c  = U2RXREG; 
         count ++;
         
         // FIRST CHECK PT. 2/3/4 ASS
         if (c == '\r' || c == '\n' || count == 16){
             spi_clear_first_row();
-            spi_move_cursor(1, 1);
+            spi_move_cursor(0, 0);
         }
         // WRITE CHAR TO FIRST ROW
         spi_put_char(c);
-        spi_move_cursor(1, count + 1);
+        spi_move_cursor(0, count);
     }
     if (U2STAbits.OERR ==1){
         while (U2STAbits.URXDA ==1){
@@ -201,19 +205,20 @@ void write_first_row(int count){
             // FIRST CHECK PT. 2/3/4 ASS
             if (c == '\r' || c == '\n' || count == 16){
                 spi_clear_first_row();
-                spi_move_cursor(1, 1);
+                spi_move_cursor(0, 0);
             }
             // WRITE CHAR TO FIRST ROW
             spi_put_char(c);
-            spi_move_cursor(1, count + 1);
+            spi_move_cursor(0, count);
         }
-        U2STAbits.OERR ==0;
+        U2STAbits.OERR =0;
     }
 }
-void write_second_row(int count, char buff[]){
+void write_second_row(int count){
+    char buff[5];
     // WRITE COUNT TO SECOND ROW PT. 5 ASS
     spi_clear_second_row();
-    spi_move_cursor(2, 1);
+    spi_move_cursor(1, 0);
     sprintf(buff, "Char Recv: %d", count);
     spi_put_string(buff);    
 }

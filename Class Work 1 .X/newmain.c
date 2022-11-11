@@ -24,9 +24,14 @@
 #include "header.h"
 
 //Initialization global variables
-int count = 0;
-char buff [15] = "";
-char arr []= "hello world";
+int counter = 0;
+char c;
+typedef struct {
+    char buffer[CIRCULAR_BUFFER_SIZE];
+    int readIndex;
+    int writeIndex;
+} circular_buffer_t;
+volatile circular_buffer_t circularBuffer;
 
 /*ISRs'*/
 void __attribute__((__interrupt__, __auto_psv__)) _INT0Interrupt(){
@@ -34,8 +39,9 @@ void __attribute__((__interrupt__, __auto_psv__)) _INT0Interrupt(){
     IFS0bits.INT0IF = 0; //setting the flag down of int0 
 
     //S5 is pressed, send the current number of chars received to UART2
-    //U2RXREG = count;
+    U2RXREG = circularBuffer.readIndex;
     LATBbits.LATB0 = 1;
+    
     
     
     
@@ -49,7 +55,7 @@ void __attribute__((__interrupt__, __auto_psv__)) _INT1Interrupt(){
     IFS1bits.INT1IF = 0; //setting the flag down of int1 down
 
     //S6 is pressed, clear the first row and reset the characters received counter
-    count = 0;
+    counter = 0; //this is wrong 
     spi_clear_first_row();
     spi_move_cursor(1, 1);
     LATBbits.LATB0 = 0;
@@ -70,78 +76,38 @@ void __attribute__((__interrupt__, __auto_psv__)) _T2Interrupt(){
     IEC1bits.INT1IE = 1; //enable interrupt on s6 again
 }
 
-void __attribute__((__interrupt__, __auto_psv__)) _U2RXInterrupt(){ //can be also _AltU2RXInterrupt
-    //this ISR is triggered when there is data rec in UART
-    //clear the global string
-    //here should read all the data and save it in global sting
-    //maybe should set the uart beffer flag down
-    IFS1bits.U2TXIF = 0; //set the flag down after it has been triggered. 
+
+
+void write_cb(volatile circular_buffer_t* cb, char byte) {
+    cb->buffer[cb->writeIndex] = byte;
+    cb->writeIndex = (cb->writeIndex + 1) % CIRCULAR_BUFFER_SIZE;
+    if (cb->readIndex == cb->writeIndex) {
+        // full buffer
+        cb->readIndex++; // discard the oldest byte
+    }
 }
 
-/*int main(void) {
-    IEC0bits.INT0IE = 1; //Interrupt flag HIGH; to enable interrupt on pin S5 button
-    IEC1bits.INT1IE = 1; //Interrupt flag HIGH; to enable interrupt on pin S6 button
-    LATBbits.LATB0 = 0;
-    //UART setup
-    U2MODEbits.UARTEN = 1; 
-    U2MODEbits.PDSEL = 0b00;
-    U2MODEbits.STSEL = 0;
-    U2STAbits.UTXEN =1;
-    //SPI setup
-    SPI1CONbits.MSTEN = 1; // master mode
-    SPI1CONbits.MODE16 = 0; // 8?bit mode
-    SPI1CONbits.PPRE = 3; // 1:1 primary prescaler
-    SPI1CONbits.SPRE = 3; // 5:1 secondary prescaler
-    SPI1STATbits.SPIEN = 1; // enable SPI
-    tmr_setup_period(TIMER1, 10);
-    while(1){
-        tmr_wait_ms(TIMER3, 7); //This is the 7 ms
-        // Initialize to first position 
-        // LCD and counter every cycle
-        spi_move_cursor(1, 1);
-        count = 0;
-        
-        // FIRST ROW PT. 2/3/4 ASS
-        write_first_row(count);
-        
-        // SECOND ROW PT. 5 ASS
-        write_second_row(count, buff);
-        tmr_wait_period(TIMER1);
+void read_cb(volatile circular_buffer_t* cb, char* byte) {
+    if (cb->readIndex != cb->writeIndex) {
+        *byte = cb->buffer[cb->readIndex];
+        cb->readIndex = (cb->readIndex + 1) % CIRCULAR_BUFFER_SIZE;
     }
-    return (0);
-}*/
-//testing SPI and UART
-/*int main(void) {
-    IEC0bits.INT0IE = 1; //Interrupt flag HIGH; to enable interrupt on pin S5 button
-    IEC1bits.INT1IE = 1; //Interrupt flag HIGH; to enable interrupt on pin S6 button
-    TRISBbits.TRISB0 = 0; // set the pin as output "led D3"
-    LATBbits.LATB0 = 0;
-    //UART setup
-    U2BRG=11;
-    U2MODEbits.PDSEL = 0b00;
-    U2MODEbits.STSEL = 0;
-    U2MODEbits.UARTEN = 1;
-    U2STAbits.UTXEN =1;
-    //SPI setup
-    SPI1CONbits.MSTEN = 1; // master mode
-    SPI1CONbits.MODE16 = 0; // 8?bit mode
-    SPI1CONbits.PPRE = 3; // 1:1 primary prescaler
-    SPI1CONbits.SPRE = 3; // 5:1 secondary prescaler
-    SPI1STATbits.SPIEN = 1; // enable SPI
-    tmr_setup_period(TIMER1, 15);
-    
-    while(1){
-        write_first_row(count);
-        tmr_wait_period(TIMER1);
-    }
-    return (0);
-}*/
+}
 
-//usf playing with uart
+void __attribute__((__interrupt__, __auto_psv__)) _U2RXInterrupt(){ //can be also _AltU2RXInterrupt
+    IFS1bits.U2TXIF = 0; //set the flag down after it has been triggered.
+
+    while (U2STAbits.URXDA == 1) {
+        write_cb(&circularBuffer, U2RXREG);
+    }
+}
+
 int main(void) {
+    //Interrupt setup
     IEC0bits.INT0IE = 1; //Interrupt flag HIGH; to enable interrupt on pin S5 button
     IEC1bits.INT1IE = 1; //Interrupt flag HIGH; to enable interrupt on pin S6 button
-    IEC1bits.U2TXIE = 1;  //Interrupt flag HIGH; to enable interrupt on pin UART2 rec. 
+    IEC1bits.U2TXIE = 1;  //Interrupt flag HIGH; to enable interrupt on pin UART2 trans.
+    IEC1bits.U2RXIE = 1; //Interrupt flag HIGH; to enable interrupt on pin UART2 rec.
     TRISBbits.TRISB0 = 0; // set the pin as output "led D3"
     LATBbits.LATB0 = 0;
     //UART setup
@@ -159,29 +125,18 @@ int main(void) {
     tmr_setup_period(TIMER1, 10);
     
     while(1){
-        while (U2STAbits.URXDA == 1){
-        char c  = U2RXREG;
-        if (c == '\r' || c == '\n'||count==16){ //this is wrong
-            count = 0;
+        tmr_wait_ms(TIMER3, 7);
+        
+        read_cb(&circularBuffer,&c);
+        if (c == 0x0D || c == 0x0A || counter == 16){ 
+            counter = 0;
             spi_clear_first_row();
         }
-        spi_move_cursor(0, count);
+        spi_move_cursor(0, counter);
         spi_put_char(c);
-        count ++;
-    }
-    if (U2STAbits.OERR ==1){
-        while (U2STAbits.URXDA ==1){
-            char c  = U2RXREG;
-            if (c == '\r' || c == '\n'||count==16){
-                count = 0;
-                spi_clear_first_row();
-            }
-            spi_move_cursor(0, count);
-            spi_put_char(c);
-            count ++; 
-        }
-        U2STAbits.OERR =0;
-    }
+        counter ++;
+        //write_second_row(circularBuffer.readIndex);
+        
         tmr_wait_period(TIMER1);
     }
     return (0);
