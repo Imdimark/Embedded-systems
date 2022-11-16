@@ -23,15 +23,14 @@
 //Libraries included
 #include "header.h"
 
-//Initialization global variables
-int counter = 0;
-char c;
+int written = 0;
+int count = 0;
 typedef struct {
-    char buffer[CIRCULAR_BUFFER_SIZE];
+    char buffer[BUFFER_SIZE];
     int readIndex;
     int writeIndex;
-} circular_buffer_t;
-volatile circular_buffer_t circularBuffer;
+}CircularBuffer;
+volatile CircularBuffer cb;
 
 /*ISRs'*/
 void __attribute__((__interrupt__, __auto_psv__)) _INT0Interrupt(){
@@ -39,12 +38,16 @@ void __attribute__((__interrupt__, __auto_psv__)) _INT0Interrupt(){
     IFS0bits.INT0IF = 0; //setting the flag down of int0 
 
     //S5 is pressed, send the current number of chars received to UART2
-    U2RXREG = circularBuffer.readIndex;
+    //U2RXREG = count;
     LATBbits.LATB0 = 1;
-    
-    
-    
-    
+    //should change it from int to str 
+    //char c = written +'0';
+    //U2TXREG = c;
+    char str2[]=" ";
+    sprintf(str2, "%d", written);
+    for (int i=0;str2[i] != '\0';i++){
+        U2TXREG= str2[i];
+    }
     tmr_setup_period(TIMER2,100); //disable the interrupt for some time for bouncing effect canceling
     IEC0bits.INT0IE = 0; //disable interrupt on S5
     IEC0bits.T2IE = 1; //enable interrupt on timer2
@@ -55,9 +58,11 @@ void __attribute__((__interrupt__, __auto_psv__)) _INT1Interrupt(){
     IFS1bits.INT1IF = 0; //setting the flag down of int1 down
 
     //S6 is pressed, clear the first row and reset the characters received counter
-    counter = 0; //this is wrong 
+    written = 0;
+    count = 0;
     spi_clear_first_row();
-    spi_move_cursor(1, 1);
+    spi_clear_second_row();
+    spi_move_cursor(0, 0);
     LATBbits.LATB0 = 0;
     
     tmr_setup_period(TIMER2,100);//disable the interrupt for some time for bouncing effect canceling
@@ -76,66 +81,66 @@ void __attribute__((__interrupt__, __auto_psv__)) _T2Interrupt(){
     IEC1bits.INT1IE = 1; //enable interrupt on s6 again
 }
 
-
-
-void write_cb(volatile circular_buffer_t* cb, char byte) {
-    cb->buffer[cb->writeIndex] = byte;
-    cb->writeIndex = (cb->writeIndex + 1) % CIRCULAR_BUFFER_SIZE;
-    if (cb->readIndex == cb->writeIndex) {
-        // full buffer
-        cb->readIndex++; // discard the oldest byte
-    }
+void write_buffer( volatile CircularBuffer *cb, char value){
+    cb->buffer[cb->writeIndex] = value;
+    cb-> writeIndex++;
+    if(cb->writeIndex == BUFFER_SIZE)
+        cb->writeIndex = 0;
 }
 
-void read_cb(volatile circular_buffer_t* cb, char* byte) {
-    if (cb->readIndex != cb->writeIndex) {
-        *byte = cb->buffer[cb->readIndex];
-        cb->readIndex = (cb->readIndex + 1) % CIRCULAR_BUFFER_SIZE;
-    }
+int read_buffer(volatile CircularBuffer *cb, char *value){
+    if(cb->readIndex == cb->writeIndex)
+        return 0;
+    *value = cb->buffer[cb->readIndex];
+    cb->readIndex++;
+    if(cb->readIndex == BUFFER_SIZE)
+        cb->readIndex = 0;
+    return 1;
 }
 
-void __attribute__((__interrupt__, __auto_psv__)) _U2RXInterrupt(){ //can be also _AltU2RXInterrupt
-    IFS1bits.U2TXIF = 0; //set the flag down after it has been triggered.
 
-    while (U2STAbits.URXDA == 1) {
-        write_cb(&circularBuffer, U2RXREG);
-    }
+void __attribute__((__interrupt__, __auto_psv__)) _U2RXInterrupt(){
+    IFS1bits.U2RXIF = 0;
+    char val = U2RXREG;
+    write_buffer(&cb, val);
 }
+
 
 int main(void) {
-    //Interrupt setup
+    cb.writeIndex=0;
+    cb.readIndex =0;
     IEC0bits.INT0IE = 1; //Interrupt flag HIGH; to enable interrupt on pin S5 button
     IEC1bits.INT1IE = 1; //Interrupt flag HIGH; to enable interrupt on pin S6 button
-    IEC1bits.U2TXIE = 1;  //Interrupt flag HIGH; to enable interrupt on pin UART2 trans.
-    IEC1bits.U2RXIE = 1; //Interrupt flag HIGH; to enable interrupt on pin UART2 rec.
-    TRISBbits.TRISB0 = 0; // set the pin as output "led D3"
-    LATBbits.LATB0 = 0;
-    //UART setup
-    U2BRG=11;
-    U2MODEbits.PDSEL = 0b00;
-    U2MODEbits.STSEL = 0;
-    U2MODEbits.UARTEN = 1;
-    U2STAbits.UTXEN =1;
-    //SPI setup
+    IEC1bits.U2RXIE = 1; //
+    TRISBbits.TRISB1 = 0;
+    //SPI SETUP
     SPI1CONbits.MSTEN = 1; // master mode
     SPI1CONbits.MODE16 = 0; // 8?bit mode
     SPI1CONbits.PPRE = 3; // 1:1 primary prescaler
-    SPI1CONbits.SPRE = 3; // 5:1 secondary prescaler
+    SPI1CONbits.SPRE = 6; // 2:1 secondary prescaler
     SPI1STATbits.SPIEN = 1; // enable SPI
+    //UART SETUP
+    U2BRG = 11; // (7372800 / 4) / (16 ? 9600) ? 1
+    U2MODEbits.UARTEN = 1; // enable UART
+    U2STAbits.UTXEN = 1; // enable U1TX
     
+    tmr_wait_ms(TIMER3, 1000);
     tmr_setup_period(TIMER1, 10);
     while(1){
         tmr_wait_ms(TIMER3, 7);
-        
-        read_cb(&circularBuffer,&c);
-        if (c == 0x0D || c == 0x0A || counter == 16){ 
-            counter = 0;
-            spi_clear_first_row();
+        char value;
+        int read = read_buffer(&cb, &value);
+        if (read == 1){
+            if (value == '\r' || value == '\n'||count==16){
+                count = 0;
+                spi_clear_first_row();
+            }
+            spi_move_cursor(0, count);
+            spi_put_char(value);
+            count++;
+            written++;
         }
-        spi_move_cursor(0, counter);
-        spi_put_char(c);
-        counter ++;
-        //write_second_row(circularBuffer.readIndex);
+        write_second_row(written); //better be called by interrupt
         
         tmr_wait_period(TIMER1);
     }

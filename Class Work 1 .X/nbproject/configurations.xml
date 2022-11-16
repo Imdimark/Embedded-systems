@@ -14,7 +14,7 @@
                    displayName="Source Files"
                    projectFiles="true">
       <itemPath>source.c</itemPath>
-      <itemPath>main.c</itemPath>
+      <itemPath>assigmentmain.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -271,8 +271,8 @@
         <property key="lastid" value=""/>
         <property key="oscillator.auxfrequency" value="120"/>
         <property key="oscillator.auxfrequencyunit" value="Mega"/>
-        <property key="oscillator.frequency" value="1"/>
-        <property key="oscillator.frequencyunit" value="Mega"/>
+        <property key="oscillator.frequency" value="1843200"/>
+        <property key="oscillator.frequencyunit" value="None"/>
         <property key="oscillator.rcfrequency" value="250"/>
         <property key="oscillator.rcfrequencyunit" value="Kilo"/>
         <property key="periphADC1.altscl" value="false"/>
@@ -795,8 +795,8 @@
         <property key="memories.programmemory.ranges" value="0-7fff"/>
         <property key="oscillator.auxfrequency" value="120"/>
         <property key="oscillator.auxfrequencyunit" value="Mega"/>
-        <property key="oscillator.frequency" value="1"/>
-        <property key="oscillator.frequencyunit" value="Mega"/>
+        <property key="oscillator.frequency" value="1843200"/>
+        <property key="oscillator.frequencyunit" value="None"/>
         <property key="oscillator.rcfrequency" value="250"/>
         <property key="oscillator.rcfrequencyunit" value="Kilo"/>
         <property key="periphADC1.altscl" value="false"/>

@@ -57,17 +57,17 @@ OBJECTDIR=build/${CND_CONF}/${IMAGE_TYPE}
 DISTDIR=dist/${CND_CONF}/${IMAGE_TYPE}
 
 # Source Files Quoted if spaced
-SOURCEFILES_QUOTED_IF_SPACED=source.c main.c
+SOURCEFILES_QUOTED_IF_SPACED=source.c assigmentmain.c
 
 # Object Files Quoted if spaced
-OBJECTFILES_QUOTED_IF_SPACED=${OBJECTDIR}/source.o ${OBJECTDIR}/main.o
-POSSIBLE_DEPFILES=${OBJECTDIR}/source.o.d ${OBJECTDIR}/main.o.d
+OBJECTFILES_QUOTED_IF_SPACED=${OBJECTDIR}/source.o ${OBJECTDIR}/assigmentmain.o
+POSSIBLE_DEPFILES=${OBJECTDIR}/source.o.d ${OBJECTDIR}/assigmentmain.o.d
 
 # Object Files
-OBJECTFILES=${OBJECTDIR}/source.o ${OBJECTDIR}/main.o
+OBJECTFILES=${OBJECTDIR}/source.o ${OBJECTDIR}/assigmentmain.o
 
 # Source Files
-SOURCEFILES=source.c main.c
+SOURCEFILES=source.c assigmentmain.c
 
 
 
@@ -101,11 +101,11 @@ ${OBJECTDIR}/source.o: source.c  .generated_files/flags/default/3b1ed2dde8bb378f
 	@${RM} ${OBJECTDIR}/source.o 
 	${MP_CC} $(MP_EXTRA_CC_PRE)  source.c  -o ${OBJECTDIR}/source.o  -c -mcpu=$(MP_PROCESSOR_OPTION)  -MP -MMD -MF "${OBJECTDIR}/source.o.d"      -g -D__DEBUG     -omf=elf -DXPRJ_default=$(CND_CONF)    $(COMPARISON_BUILD)  -O0 -msmart-io=1 -Wall -msfr-warn=off    -mdfp="${DFP_DIR}/xc16"
 	
-${OBJECTDIR}/main.o: main.c  .generated_files/flags/default/ec2b338a67ba7a54b7e5fec48483970562cb57c4 .generated_files/flags/default/fd67b544a79261c2fe49714d5749bb13d89b49dc
+${OBJECTDIR}/assigmentmain.o: assigmentmain.c  .generated_files/flags/default/b9e759cb1667d63cda203a5e339ea734750a40a1 .generated_files/flags/default/fd67b544a79261c2fe49714d5749bb13d89b49dc
 	@${MKDIR} "${OBJECTDIR}" 
-	@${RM} ${OBJECTDIR}/main.o.d 
-	@${RM} ${OBJECTDIR}/main.o 
-	${MP_CC} $(MP_EXTRA_CC_PRE)  main.c  -o ${OBJECTDIR}/main.o  -c -mcpu=$(MP_PROCESSOR_OPTION)  -MP -MMD -MF "${OBJECTDIR}/main.o.d"      -g -D__DEBUG     -omf=elf -DXPRJ_default=$(CND_CONF)    $(COMPARISON_BUILD)  -O0 -msmart-io=1 -Wall -msfr-warn=off    -mdfp="${DFP_DIR}/xc16"
+	@${RM} ${OBJECTDIR}/assigmentmain.o.d 
+	@${RM} ${OBJECTDIR}/assigmentmain.o 
+	${MP_CC} $(MP_EXTRA_CC_PRE)  assigmentmain.c  -o ${OBJECTDIR}/assigmentmain.o  -c -mcpu=$(MP_PROCESSOR_OPTION)  -MP -MMD -MF "${OBJECTDIR}/assigmentmain.o.d"      -g -D__DEBUG     -omf=elf -DXPRJ_default=$(CND_CONF)    $(COMPARISON_BUILD)  -O0 -msmart-io=1 -Wall -msfr-warn=off    -mdfp="${DFP_DIR}/xc16"
 	
 else
 ${OBJECTDIR}/source.o: source.c  .generated_files/flags/default/7f0124df6316c94efd0310dcead1b82b2625aa3b .generated_files/flags/default/fd67b544a79261c2fe49714d5749bb13d89b49dc
@@ -114,11 +114,11 @@ ${OBJECTDIR}/source.o: source.c  .generated_files/flags/default/7f0124df6316c94e
 	@${RM} ${OBJECTDIR}/source.o 
 	${MP_CC} $(MP_EXTRA_CC_PRE)  source.c  -o ${OBJECTDIR}/source.o  -c -mcpu=$(MP_PROCESSOR_OPTION)  -MP -MMD -MF "${OBJECTDIR}/source.o.d"        -g -omf=elf -DXPRJ_default=$(CND_CONF)    $(COMPARISON_BUILD)  -O0 -msmart-io=1 -Wall -msfr-warn=off    -mdfp="${DFP_DIR}/xc16"
 	
-${OBJECTDIR}/main.o: main.c  .generated_files/flags/default/de0d9e52f07ba468b5f925b7d8eb5c115bf89acf .generated_files/flags/default/fd67b544a79261c2fe49714d5749bb13d89b49dc
+${OBJECTDIR}/assigmentmain.o: assigmentmain.c  .generated_files/flags/default/6e3486c846b1690250a0f30f45e11a66f8ab46ba .generated_files/flags/default/fd67b544a79261c2fe49714d5749bb13d89b49dc
 	@${MKDIR} "${OBJECTDIR}" 
-	@${RM} ${OBJECTDIR}/main.o.d 
-	@${RM} ${OBJECTDIR}/main.o 
-	${MP_CC} $(MP_EXTRA_CC_PRE)  main.c  -o ${OBJECTDIR}/main.o  -c -mcpu=$(MP_PROCESSOR_OPTION)  -MP -MMD -MF "${OBJECTDIR}/main.o.d"        -g -omf=elf -DXPRJ_default=$(CND_CONF)    $(COMPARISON_BUILD)  -O0 -msmart-io=1 -Wall -msfr-warn=off    -mdfp="${DFP_DIR}/xc16"
+	@${RM} ${OBJECTDIR}/assigmentmain.o.d 
+	@${RM} ${OBJECTDIR}/assigmentmain.o 
+	${MP_CC} $(MP_EXTRA_CC_PRE)  assigmentmain.c  -o ${OBJECTDIR}/assigmentmain.o  -c -mcpu=$(MP_PROCESSOR_OPTION)  -MP -MMD -MF "${OBJECTDIR}/assigmentmain.o.d"        -g -omf=elf -DXPRJ_default=$(CND_CONF)    $(COMPARISON_BUILD)  -O0 -msmart-io=1 -Wall -msfr-warn=off    -mdfp="${DFP_DIR}/xc16"
 	
 endif
 

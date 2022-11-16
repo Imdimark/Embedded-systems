@@ -7,9 +7,10 @@
 #define TIMER1 1
 #define TIMER2 2
 #define TIMER3 3
+#define TIMER4 4
 #define FIRST_ROW 0
 #define SECOND_ROW 1
-#define CIRCULAR_BUFFER_SIZE 15
+#define BUFFER_SIZE 60
 
 
  
@@ -28,7 +29,7 @@ void spi_clear_second_row();
 
 /*UART Functions*/
 void write_first_row(int count);
-void write_second_row(int count);
+void write_second_row(int written);
 
 #endif	/* XC_HEADER_TEMPLATE_H */
 

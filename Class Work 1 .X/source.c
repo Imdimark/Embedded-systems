@@ -2,7 +2,7 @@
 
 
 /*Timer Functions*/
-void choose_prescaler(int ms, int* tckps, int* pr){
+void choose_prescaler(int ms, int* pr, int* tckps){
     //Fcy = 1843200 Hz ?> 1843,2 clock ticks in 1 ms
     long ticks = 1843.2*ms; // there can be an approximation
     if ( ticks <= 65535){ // if ticks is > 65535 it cannot be put in PR1 (only 16 bits )
@@ -33,7 +33,7 @@ void tmr_setup_period(int timer, int ms){
         T1CONbits.TON = 0;
         TMR1 = 0; // reset the current value;
         int tckps, pr;
-        choose_prescaler(ms, &tckps, &pr);
+        choose_prescaler(ms, &pr, &tckps);
         T1CONbits.TCKPS = tckps;
         PR1 = pr;
         T1CONbits.TON = 1;
@@ -43,7 +43,7 @@ void tmr_setup_period(int timer, int ms){
         T2CONbits.TON = 0;
         TMR2 = 0; // reset the current value;
         int tckps, pr;
-        choose_prescaler(ms, &tckps, &pr);
+        choose_prescaler(ms, &pr, &tckps);
         T2CONbits.TCKPS = tckps;
         PR2 = pr;
         T2CONbits.TON = 1;
@@ -53,10 +53,20 @@ void tmr_setup_period(int timer, int ms){
         T3CONbits.TON = 0;
         TMR3 = 0; // reset the current value;
         int tckps, pr;
-        choose_prescaler(ms, &tckps, &pr);
+        choose_prescaler(ms, &pr, &tckps);
         T3CONbits.TCKPS = tckps;
         PR3 = pr;
         T3CONbits.TON = 1;
+        return;
+    }
+    else if (timer == 4){
+        T4CONbits.TON = 0;
+        TMR4 = 0; // reset the current value;
+        int tckps, pr;
+        choose_prescaler(ms, &pr, &tckps);
+        T4CONbits.TCKPS = tckps;
+        PR4 = pr;
+        T4CONbits.TON = 1;
         return;
     }
     
@@ -79,6 +89,12 @@ void tmr_wait_period(int timer){
         while ( IFS0bits .T3IF == 0){}
         // I will exit the above loop only when the timer 3 peripheral has expired and it has set the T1IF flag to one
         IFS0bits .T3IF = 0; // set to zero to be able to recognize the next time the timer has expired
+        return;
+    }
+    else if (timer == 4){
+        while (IFS1bits.T4IF == 0){}
+        // I will exit the above loop only when the timer 3 peripheral has expired and it has set the T1IF flag to one
+        IFS1bits.T4IF = 0; // set to zero to be able to recognize the next time the timer has expired
         return;
     }
 }
@@ -133,6 +149,23 @@ void tmr_wait_ms(int timer, int ms) {
         while (IFS0bits.T3IF == 0);
         IFS0bits.T3IF = 0;
         T3CONbits.TON = 0;
+        return;
+    }
+    else if (timer == 4){
+        int pr, tckps;
+        choose_prescaler(ms, &pr, &tckps);
+        PR4 = pr;
+        T4CONbits.TCKPS = tckps;
+        T4CONbits.TCS = 0;
+        T4CONbits.TGATE = 0;
+            
+        T4CONbits.TON = 0;
+        IFS0bits.T3IF = 0;
+        TMR4 = 0;
+        T4CONbits.TON = 1;
+        while (IFS1bits.T4IF == 0);
+        IFS1bits.T4IF = 0;
+        T4CONbits.TON = 0;
         return;
     }
     return;
@@ -214,11 +247,12 @@ void write_first_row(int count){
         U2STAbits.OERR =0;
     }
 }
-void write_second_row(int count){
-    char buff[5];
-    // WRITE COUNT TO SECOND ROW PT. 5 ASS
-    spi_clear_second_row();
+void write_second_row(int written){
+    char str [5];
     spi_move_cursor(1, 0);
-    sprintf(buff, "Char Recv: %d", count);
-    spi_put_string(buff);    
+    spi_put_string("Char Recv:");
+    sprintf(str, "%d", written);
+    spi_move_cursor(1, 10);
+    spi_put_string(str);
+    spi_move_cursor(0, 0);
 }
