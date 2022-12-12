@@ -95,17 +95,15 @@ void read_spe_uart(void* param) {
     int i=0;
     double rpmdouble=0;
     read = read_buffer(&cb, &value);
-    if (read == 1){ //should hv been a while loop?
+    while (read == 1){ //should hv been a while loop?
         str[i]=value;
-        U2TXREG= str[i];
         i++;
         read = read_buffer(&cb, &value);
     }
     for (int j=0;str[j+6]!='\0';j++){
         rpm[j]=str[j+6];
-        U2TXREG= rpm[j];
     }
-    
+    sprintf(rpm, "%lf", rpmdouble);
     structure -> speed = rpmdouble;
     //read from uart --> circular buffer --> parser -->
     
@@ -127,13 +125,7 @@ void set_voltage_DC(void* param) {
 
 	//duty_cycle = 0.05*(received_speed / 1023.0) + 0.05;
    
-	PDC2 = duty_cycle; // * 2 * PTPER;
-    
-    /*char str2[]=" ";
-    sprintf(str2, "%lf", received_speed);
-    for (int i=0;str2[i] != '\0';i++){
-        U2TXREG= str2[i];
-    }*/
+	PDC2 = duty_cycle; // * 2 * PTPER;    
   
 }
 
