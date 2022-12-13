@@ -50,6 +50,8 @@ typedef struct {
 
 typedef struct {
     double speed;
+	double current;
+	double temperature;
 } ls;
 
 typedef struct {
@@ -142,14 +144,26 @@ void blink_led(void* param) { //this point is finished
 }
 
 void check_button(void* param) {
-    int x =5;
+    ls* structure = (ls*) param;
+    while(!ADCON1bits.DONE);
+    int potBits = ADCBUF0;
+    structure->current = 50 + 150 * (potBits / 1024.0);
 }
 
 void read_potentiometer(void* param) {
-    int *pSlidingControllerN = (int*) param;
+    ls* structure = (ls*) param;
     while(!ADCON1bits.DONE);
-    int potBits = ADCBUF0;
-    *pSlidingControllerN = 50 + 150 * (potBits / 1024.0);
+    int potBits = ADCBUF0; //read from register 
+	int current = 50 + 150 * (potBits / 1024.0);
+	
+	if (current > 15):{
+		LATBbits.LATB1 = 1; //-------------------------> if current is higher then 15 A open the led D4
+	}
+	else {
+		LATBbits.LATB1 = 0;
+	}
+    
+	structure->current = current;
 }
 
     
@@ -214,7 +228,7 @@ int main(void) {
     tmr_wait_ms(TIMER2, 1000);
 
     TRISBbits.TRISB0 = 0;
-    TRISBbits.TRISB1 = 0;
+    TRISBbits.TRISB1 = 0; D4
     TRISEbits.TRISE8 = 1;
 
     tmr_setup_period(TIMER1, 5); //------------------------------------------> control loop 200 hz = 1/(0.005 s )
@@ -261,13 +275,13 @@ int main(void) {
     schedInfo[2].f = blink_led;
     schedInfo[2].params = NULL;
     schedInfo[3].n = 0;
-    schedInfo[3].N = 4;
-    schedInfo[3].f = check_button;
+    schedInfo[3].N = 20;
+    schedInfo[3].f = read_temperature;
     schedInfo[3].params = (void*)(&structure);
     schedInfo[4].n = 0;
     schedInfo[4].N = 50;
     schedInfo[4].f = read_potentiometer;
-    schedInfo[4].params = &(schedInfo[2].N);
+    schedInfo[4].params = (void*)(&structure);
     
     
     
@@ -281,5 +295,4 @@ int main(void) {
 
     return 0;
 }
-
 
