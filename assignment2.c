@@ -48,7 +48,7 @@ typedef struct {
 
 } heartbeat;
 
-typedef struct {
+typedef struct {		
     double speed;
 	double current;
 	double temperature;
@@ -97,16 +97,17 @@ void read_spe_uart(void* param) {
     int i=0;
     double rpmdouble=0;
     read = read_buffer(&cb, &value);
-    if (read == 1){ //should hv been a while loop?
+    if (read == 1){ //should hv been a while loop? YES, while read 1 everything in the circular buffer end
         str[i]=value;
         U2TXREG= str[i];
         i++;
         read = read_buffer(&cb, &value);
     }
-    for (int j=0;str[j+6]!='\0';j++){
-        rpm[j]=str[j+6];
-        U2TXREG= rpm[j];
-    }
+    for (int j=0;str[j+6]!='\0';j++){	// while items in the circular buffer -> val = parse(&ps,item of cb) (val can be NEW_MESSAGE or NO_MESSAGE may useful for initialize the variable again)				
+        rpm[j]=str[j+6];		// Process it and classify info!!
+        U2TXREG= rpm[j];		//  if(ps->state == STATE_PAYLOAD) -> rpm[ps->index_payload] = ps -> msg_payload[ps->index_payload ] something like this...
+	    				// then we can use fscanf for retrieve number from string like -> fscanf(rpm,"%f",ls.speed) end
+    }					// if(val == NEW_MESSAGE) -> rpm[] = "" (? i do not know)
     
     structure -> speed = rpmdouble;
     //read from uart --> circular buffer --> parser -->
@@ -267,8 +268,8 @@ int main(void) {
     schedInfo[0].f = read_spe_uart;
     schedInfo[0].params = (void*)(&structure);
     schedInfo[1].n = 0;
-    schedInfo[1].N = 50; //------------------------------------------> how frequently we want to change the speed?
-    schedInfo[1].f = set_voltage_DC;
+    schedInfo[1].N = 50; //------------------------------------------> how frequently we want to change the speed? Bro I think blink_led has early deadline, and without reading the potentiometer
+    schedInfo[1].f = set_voltage_DC;					// we change frequently a speed which is always the same? because higher priority than read_pot?
     schedInfo[1].params = (void*)(&structure); 
     schedInfo[2].n = 0;
     schedInfo[2].N = 100; //------------------------------------------> point 6, it is changing state at 1/(5*100)ms = 2Hz so it is blinking at 1Hz
