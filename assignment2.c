@@ -267,25 +267,22 @@ int main(void) {
 	
 	
     schedInfo[0].n = 0;
-    schedInfo[0].N = 1; //------------------------------------------> depends from baudrate 9600 bps ????????
-    schedInfo[0].f = read_spe_uart;
+    schedInfo[0].N = 1; //------------------------------------------> depends from baudrate 9600 bps ???????? N =
+    schedInfo[0].f = read_spe_uart; 
     schedInfo[0].params = (void*)(&structure);
     schedInfo[1].n = 0;
-    schedInfo[1].N = 50; //------------------------------------------> how frequently we want to change the speed? Bro I think blink_led has early deadline, and without reading the potentiometer
+    schedInfo[1].N = 30; //------------------------------------------> how frequently we want to change the speed? Bro I think blink_led has early deadline, and without reading the potentiometer
     schedInfo[1].f = set_voltage_DC;					// we change frequently a speed which is always the same? because higher priority than read_pot?
     schedInfo[1].params = (void*)(&structure); 
     schedInfo[2].n = 0;
-    schedInfo[2].N = 100; //------------------------------------------> point 6, it is changing state at 1/(5*100)ms = 2Hz so it is blinking at 1Hz
+    schedInfo[2].N = 40; //------------------------------------------> point 6, it is changing state at 1/(5*100)ms = 2Hz so it is blinking at 1Hz
     schedInfo[2].f = blink_led;
     schedInfo[2].params = NULL;
     schedInfo[3].n = 0;
-    schedInfo[3].N = 20;
-    schedInfo[3].f = read_temperature;
+    schedInfo[3].N = 40;
+    schedInfo[3].f = temp_current;
     schedInfo[3].params = (void*)(&structure);
-    schedInfo[4].n = 0;
-    schedInfo[4].N = 50;
-    schedInfo[4].f = read_potentiometer;
-    schedInfo[4].params = (void*)(&structure);
+   
     
     
     
