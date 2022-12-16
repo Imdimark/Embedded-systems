@@ -144,12 +144,6 @@ void blink_led(void* param) { //this point is finished
     LATBbits.LATB0 = !LATBbits.LATB0;
 }
 
-void check_button(void* param) {
-    ls* structure = (ls*) param;
-    while(!ADCON1bits.DONE);
-    int potBits = ADCBUF0;
-    structure->current = 50 + 150 * (potBits / 1024.0);
-}
 
 void read_potentiometer(void* param) {
     ls* structure = (ls*) param;
@@ -165,6 +159,15 @@ void read_potentiometer(void* param) {
 	}
     
 	structure->current = current;
+	
+	
+	// read temperature here
+	ls* structure = (ls*) param;
+    	while(!ADCON1bits.DONE);
+   	 int potBits = ADCBUF0;
+   	 structure->current = 50 + 150 * (potBits / 1024.0);
+	
+	// send to UART
 }
 
     
