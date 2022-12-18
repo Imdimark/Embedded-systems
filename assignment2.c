@@ -161,7 +161,7 @@ void read_potentiometer(void* param) {
 			double voltage_pot = ADCValue_pot/1024.0 * 5.0;
 			double voltage_temp = ADCValue_temp/1024.0 * 5.0;
 		
-			double temperature = (voltage - 0.75) 100 + 25;
+			double temperature = (voltage - 0.75) *100 + 25;
 			double current = 
 				
 			if (current > 15){
