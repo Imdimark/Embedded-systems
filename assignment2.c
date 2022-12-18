@@ -146,28 +146,31 @@ void blink_led(void* param) { //this point is finished
 
 
 void read_potentiometer(void* param) {
-    ls* structure = (ls*) param;
-    while(!ADCON1bits.DONE);
-    int potBits = ADCBUF0; //read from register 
-	int current = 50 + 150 * (potBits / 1024.0);
-	
-	if (current > 15):{
-		LATBbits.LATB1 = 1; //-------------------------> if current is higher then 15 A open the led D4
-	}
-	else {
-		LATBbits.LATB1 = 0;
-	}
-    
-	structure->current = current;
-	
-	
-	// read temperature here
 	ls* structure = (ls*) param;
-    	while(!ADCON1bits.DONE);
-   	 int potBits = ADCBUF0;
-   	 structure->current = 50 + 150 * (potBits / 1024.0);
-	
-	// send to UART
+	char str[17]; //------>is 14 enough?
+	while (1) // repeat continuously
+	{
+		ADCON1bits.SAMP = 1; // start sampling ...
+		tmr_wait_ms(TIMER2,2); // for 100 mS
+		ADCON1bits.SAMP = 0; // start Converting
+
+		while (!ADCON1bits.DONE); // conversion done?
+			int ADCValue_pot_pot = ADCBUF0; // yes then get ADC value
+			int ADCValue_pot_temp = ADCBUF1; // yes then get ADC value
+			if (ADCValue_pot_pot > 15){
+				LATBbits.LATB1 = 1;
+			}
+			if else (ADCValue_pot <= 15){
+				LATBbits.LATB1 = 0;
+			}
+			double voltage = ADCValue_pot/1024.0 * 5.0;
+			double temperature = (voltage - 0.75) 100 + 25;
+
+			sprintf (str,"$MCFBK,%.2f,%.2f*", current, temperature);
+			//----------------------------------------------------->sending uart
+
+	} // repeat
+    
 }
 
     
@@ -199,7 +202,7 @@ void scheduler(heartbeat schedInfo[]) {
     }
 }
 
-void adc_configuration() {
+void adc_configuration() { //using sequential sampling
 	ADCON3bits.ADCS = 8; //----------> con 8 tad time troppo breve interferenza tra temp e corrente non switcha bene
 	ADCON1bits.ASAM = 1; // manual sampling start
 	ADCON1bits.SSRC = 7; // automatic conversion start
