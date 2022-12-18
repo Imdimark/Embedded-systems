@@ -155,17 +155,21 @@ void read_potentiometer(void* param) {
 		ADCON1bits.SAMP = 0; // start Converting
 
 		while (!ADCON1bits.DONE); // conversion done?
-			int ADCValue_pot_pot = ADCBUF0; // yes then get ADC value
-			int ADCValue_pot_temp = ADCBUF1; // yes then get ADC value
-			if (ADCValue_pot_pot > 15){
+			int ADCValue_pot = ADCBUF0; // yes then get ADC value
+			int ADCValu_temp = ADCBUF1; // yes then get ADC value
+			
+			double voltage_pot = ADCValue_pot/1024.0 * 5.0;
+			double voltage_temp = ADCValue_temp/1024.0 * 5.0;
+		
+			double temperature = (voltage - 0.75) 100 + 25;
+			double current = 
+				
+			if (current > 15){
 				LATBbits.LATB1 = 1;
 			}
-			if else (ADCValue_pot <= 15){
+			if else (current <= 15){
 				LATBbits.LATB1 = 0;
 			}
-			double voltage = ADCValue_pot/1024.0 * 5.0;
-			double temperature = (voltage - 0.75) 100 + 25;
-
 			sprintf (str,"$MCFBK,%.2f,%.2f*", current, temperature);
 			//----------------------------------------------------->sending uart
 
