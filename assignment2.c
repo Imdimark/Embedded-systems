@@ -200,28 +200,17 @@ void scheduler(heartbeat schedInfo[]) {
 }
 
 void adc_configuration() {
-    ADCON3bits.ADCS = 16;
-    //ADCON1bits.ASAM = 0; // manual sampling start
-    ADCON1bits.ASAM = 1; // automatic sampling start
-    //ADCON1bits.SSRC = 0; // manual conversion start
-    ADCON1bits.SSRC = 7; // automatic conversion start
-    ADCON3bits.SAMC = 31; // fixed conversion time (Only if SSRC = 7)
-    ADCON2bits.CHPS = 0; // CH0 only
-    //ADCON2bits.CHPS = 1; // CH0 & CH1
-    ADCHSbits.CH0SA = 2; // AN2 connected to CH0
-    //ADCHSbits.CH0SA = 3; // AN3 connected to CH0
-    ADCHSbits.CH123SA = 1; // AN3 connected to CH1
-    ADPCFG = 0xFFFF;
-    ADPCFGbits.PCFG2 = 0; // AN2 as analog
-    //ADPCFGbits.PCFG3 = 0; // AN3 as analog
-    //ADCON2bits.SMPI = 1; // 2 sample/convert sequences
-    //ADCON1bits.SIMSAM = 1;
-    //ADCON2bits.CSCNA = 1; // scan mode;
-
-    /*ADCSSL = 0;
-    ADCSSLbits.CSSL2 = 1; // scan AN2
-    ADCSSLbits.CSSL3 = 1; // scan AN3 */
-    ADCON1bits.ADON = 1;
+	ADCON3bits.ADCS = 8; //----------> lui consiglia 8, era 16????
+	ADCON1bits.ASAM = 1; // manual sampling start
+	ADCON1bits.SSRC = 7; // automatic conversion start
+	ADCON3bits.SAMC = 16; // fixed conversion time (neededOnly if SSRC = 7) // could be 0 only only if multichannel multiple sequential time
+	ADCON2bits.CHPS = 1; // CH0 & CH1
+	ADCHSbits.CH0SA = 2; // AN2 connected to CH0
+	ADCHSbits.CH123SA = 1; // AN3 connected to CH1
+	ADPCFG = 0xFFFF;
+	ADPCFGbits.PCFG2 = 0; // AN2 as analog
+	ADPCFGbits.PCFG3 = 0; // AN3 as analog
+	ADCON2bits.SMPI = 1; // 2 sample/convert sequences
 }
 
 int main(void) {
