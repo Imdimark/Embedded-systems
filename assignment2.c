@@ -128,7 +128,7 @@ void set_voltage_DC(void* param) {
 		duty_cycle = 0;
 	}
 
-	//duty_cycle = 0.05*(received_speed / 1023.0) + 0.05;
+	//duty_cycle = 0.05*(received_speed / 1024.0) + 0.05;
    
 	PDC2 = duty_cycle; // * 2 * PTPER;
     
@@ -158,11 +158,11 @@ void read_potentiometer(void* param) {
 			int ADCValue_pot = ADCBUF0; // yes then get ADC value
 			int ADCValu_temp = ADCBUF1; // yes then get ADC value
 			
-			double voltage_pot = ADCValue_pot/1024.0 * 5.0;
-			double voltage_temp = ADCValue_temp/1024.0 * 5.0;
+			//double voltage_pot = ADCValue_pot/1024.0 * 5.0; 
+			double voltage_temp = ADCValue_temp/1024.0 * 5.0; //max value is 1024, then 1024/1024 * 5 = 5 V at the maximum value
 		
-			double temperature = (voltage - 0.75) *100 + 25;
-			double current = 
+			double temperature = (voltage_temp - 0.75) *100 + 25;
+			double current = 3.0 / (0.1 * (ADCValue_pot/1024.0) );
 				
 			if (current > 15){
 				LATBbits.LATB1 = 1;
