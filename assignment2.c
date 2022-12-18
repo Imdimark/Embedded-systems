@@ -200,10 +200,10 @@ void scheduler(heartbeat schedInfo[]) {
 }
 
 void adc_configuration() {
-	ADCON3bits.ADCS = 8; //----------> lui consiglia 8, era 16????
+	ADCON3bits.ADCS = 8; //----------> con 8 tad time troppo breve interferenza tra temp e corrente non switcha bene
 	ADCON1bits.ASAM = 1; // manual sampling start
 	ADCON1bits.SSRC = 7; // automatic conversion start
-	ADCON3bits.SAMC = 16; // fixed conversion time (neededOnly if SSRC = 7) // could be 0 only only if multichannel multiple sequential time
+	ADCON3bits.SAMC = 31; // fixed conversion time (neededOnly if SSRC = 7) // could be 0 only only if multichannel multiple sequential time //16 troppo breve  e ci sono interferenze
 	ADCON2bits.CHPS = 1; // CH0 & CH1
 	ADCHSbits.CH0SA = 2; // AN2 connected to CH0
 	ADCHSbits.CH123SA = 1; // AN3 connected to CH1
