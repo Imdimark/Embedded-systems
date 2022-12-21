@@ -1,19 +1,23 @@
-
-// DSPIC30F4011 Configuration Bit Settings
-
-// 'C' source line config statements
-
-// FOSC
+/*
+ * Authors: 
+ *  Youssef Mohsen Mahmoud Attia 5171925
+ *  Giovanni Di Marco            5014077
+ *  Sinatra Gesualdo             5159684
+ * Readme: 
+ *  Please note that the code is designed to receive data in that from  $MCREF,400* from the UART,
+ *  if the user should only send the RPM from range to 0 to 1000 RPM, other wise it will be neglected. 
+ *  Also, make sure not to flush the UART with characters as the buffer size is set for exactly the indicated
+ *  message length with a safety factor of an one or two extra characters.
+ */
+//FOSC
 #pragma config FPR = XT                 // Primary Oscillator Mode (XT)
 #pragma config FOS = PRI                // Oscillator Source (Primary Oscillator)
 #pragma config FCKSMEN = CSW_FSCM_OFF   // Clock Switching and Monitor (Sw Disabled, Mon Disabled)
-
-// FWDT
+//FWDT
 #pragma config FWPSB = WDTPSB_16        // WDT Prescaler B (1:16)
 #pragma config FWPSA = WDTPSA_512       // WDT Prescaler A (1:512)
 #pragma config WDT = WDT_OFF            // Watchdog Timer (Disabled)
-
-// FBORPOR
+//FBORPOR
 #pragma config FPWRT = PWRT_64          // POR Timer Value (64ms)
 #pragma config BODENV = BORV20          // Brown Out Voltage (Reserved)
 #pragma config BOREN = PBOR_ON          // PBOR Enable (Enabled)
@@ -21,275 +25,226 @@
 #pragma config HPOL = PWMxH_ACT_HI      // High-side PWM Output Polarity (Active High)
 #pragma config PWMPIN = RST_IOPIN       // PWM Output Pin Reset (Control with PORT/TRIS regs)
 #pragma config MCLRE = MCLR_EN          // Master Clear Enable (Enabled)
-
-// FGS
+//FGS
 #pragma config GWRP = GWRP_OFF          // General Code Segment Write Protect (Disabled)
 #pragma config GCP = CODE_PROT_OFF      // General Segment Code Protection (Disabled)
-
-// FICD
+//FICD
 #pragma config ICS = ICS_PGD            // Comm Channel Select (Use PGC/EMUC and PGD/EMUD)
 
-// #pragma config statements should precede project file includes.
-// Use project enums instead of #define for ON and OFF.
-
-#include <xc.h>
-#include <p30F4011.h>
-#include <stdio.h>
-#include <string.h>
+//Libraries included
 #include "header.h"
+#include "parser.h"
 
-#define MAX_TASKS 5
-
+//Global Variables Initialization
+typedef struct {
+    char *buffer;
+    int readIndex;
+    int writeIndex;
+}CircularBuffer;
 typedef struct {
     int n;
     int N;
     void (*f)(void *);
     void* params;
-
-} heartbeat;
-
+}heartbeat;
 typedef struct {		
-    double speed;
-	double current;
-	double temperature;
-} ls;
+    int speed;
+    int error_flag;
+}sp;
 
-typedef struct {
-    char buffer[BUFFER_SIZE];
-    int readIndex;
-    int writeIndex;
-}CircularBuffer;
-volatile CircularBuffer cb;
+volatile CircularBuffer RXcircularBuffer;
+volatile CircularBuffer TXcircularBuffer;
+static char TX_buffer_size[20];
+static char RX_buffer_size[8];
+parser_state pstate;
 
-void write_buffer( volatile CircularBuffer *cb, char value){
-    //Function called by UART2 ISR to fill the buffer
-    cb->buffer[cb->writeIndex] = value;
-    cb-> writeIndex++;
-    if(cb->writeIndex == BUFFER_SIZE)
-        cb->writeIndex = 0;
+
+//Functions Interrupt & Service Routine
+void write_buffer(volatile CircularBuffer* cb, char value, int size){
+    cb ->buffer[ cb -> writeIndex] = value;
+    cb -> writeIndex = (cb -> writeIndex + 1) % size;
+    if(cb -> readIndex == cb -> writeIndex){
+        cb ->readIndex++;
+    }
 }
-
-int read_buffer(volatile CircularBuffer *cb, char *value){
-    //Function called to read the buffer in the main
+int read_buffer(volatile CircularBuffer *cb, char *value, int size){
     if(cb->readIndex == cb->writeIndex)
         return 0;
     *value = cb->buffer[cb->readIndex];
     cb->readIndex++;
-    if(cb->readIndex == BUFFER_SIZE)
+    if(cb->readIndex == size)
         cb->readIndex = 0;
     return 1;
+}
+int avl_bytes_cb(volatile CircularBuffer* cb, int size){
+    if(cb -> readIndex <= cb -> writeIndex) {
+        return cb->writeIndex - cb -> readIndex;
+    }else{
+        return size - cb ->readIndex + cb->writeIndex;
+    }
 }
 
 void __attribute__((__interrupt__, __auto_psv__)) _U2RXInterrupt(){
     //ISR of UART2
     IFS1bits.U2RXIF = 0;
     char val = U2RXREG;
-    write_buffer(&cb, val);
+    write_buffer(&RXcircularBuffer, val, sizeof(RX_buffer_size));
 }
-char string[] = "This is a very long string";
-
-void read_spe_uart(void* param) {  
-    ls* structure = (ls*) param;
-    int read;
-    char value;
-    char rpm[]="";
-    char str[]="";
-    int i=0;
-    double rpmdouble=0;
-    read = read_buffer(&cb, &value);
-    if (read == 1){ //should hv been a while loop? YES, while read 1 everything in the circular buffer end
-        str[i]=value;
-        U2TXREG= str[i];
-        i++;
-        read = read_buffer(&cb, &value);
+void __attribute__((__interrupt__,__auto_psv__)) _U2TXInterrupt(){
+    IFS1bits.U2TXIF = 0;
+    char packetchar;
+    while(U2STAbits.UTXBF == 0) {
+        if(read_buffer(&TXcircularBuffer, &packetchar, sizeof(TX_buffer_size)) == 1){
+            U2TXREG = packetchar;
+        }
+        else{
+            break;
+        }
     }
-    for (int j=0;str[j+6]!='\0';j++){	// while items in the circular buffer -> val = parse(&ps,item of cb) (val can be NEW_MESSAGE or NO_MESSAGE may useful for initialize the variable again)				
-        rpm[j]=str[j+6];		// Process it and classify info!!
-        U2TXREG= rpm[j];		//  if(ps->state == STATE_PAYLOAD) -> rpm[ps->index_payload] = ps -> msg_payload[ps->index_payload ] something like this...
-	    				// then we can use fscanf for retrieve number from string like -> fscanf(rpm,"%f",ls.speed) end
-    }					// if(val == NEW_MESSAGE) -> rpm[] = "" (? i do not know)
-    
-    structure -> speed = rpmdouble;
-    //read from uart --> circular buffer --> parser -->
-    
 }
 
-void set_voltage_DC(void* param) {
-	ls* structure = (ls*) param;
-	double received_speed = structure -> speed; //-------------------> here we store the received velocity
-    double duty_cycle = 0;
-	if (received_speed> 999.5) {
-		duty_cycle = 1;
-	}
-	else if(0 < received_speed <= 999.5){
-		duty_cycle = 0.05 + (received_speed/1000); //0.05 is the minimum to avoid distorsion (See dead time for example
-	}
-	else{
-		duty_cycle = 0;
-	}
-
-	//duty_cycle = 0.05*(received_speed / 1024.0) + 0.05;
-   
-	PDC2 = duty_cycle; // * 2 * PTPER;
+void RX_UART(void* param) { 
+    sp* structure = (sp*) param;
+    int avl = avl_bytes_cb(&RXcircularBuffer, sizeof(RX_buffer_size)); 
+    int count = 0;
+    int RPMdesired = 0;
+    while (count <avl ){
+        char byte;
+        IEC1bits.U2RXIE=0;
+        read_buffer(&RXcircularBuffer, &byte, sizeof(RX_buffer_size));
+        IEC1bits.U2RXIE=1;
+        int ret = parse_byte(&pstate, byte);
+        if (ret == NEW_MESSAGE){
+            if(strcmp(pstate.msg_type, "MCREF" ) == 0){
+                if (extract_number(pstate.msg_payload, &RPMdesired)!=-1){
+                    if (RPMdesired>=0 && RPMdesired<=1000){
+                            structure -> speed = RPMdesired;
+                            structure ->error_flag =0;
+                        }
+                    }
+                }
+            else{
+                structure ->error_flag =1;
+            }
+            }
+        count++;
+        
+        }
+}
+void Set_PWM(void* param) {
+	sp* structure = (sp*) param;
+	double received_speed = structure -> speed;
+    double duty_cycle = 0.25;
+    duty_cycle = 0.05 + (received_speed/1000);
+	PDC2 = duty_cycle * 2 * PTPER;
+}
+void Blink_Led(void* param) {
+    sp* structure = (sp*) param;
+    if(structure ->error_flag ==1 || U2STAbits.OERR == 1){
+        if(U2STAbits.OERR == 1){
+            U2STAbits.OERR = 0;
+        }
+        LATBbits.LATB0=0;
+    }
+    else{
+        LATBbits.LATB0 = !LATBbits.LATB0;
+    }
+}
+void TX_UART(void* param) {
+    char packet[18];
     
-    /*char str2[]=" ";
-    sprintf(str2, "%lf", received_speed);
-    for (int i=0;str2[i] != '\0';i++){
-        U2TXREG= str2[i];
-    }*/
-  
+    ADCON1bits.SAMP = 1; //start sampling
+    while(ADCON1bits.DONE == 0); //wait until conversion is done
+    ADCON1bits.DONE = 0; //just for double checking
+    int potBits = ADCBUF0; // extract the value from the buffer
+    double current = (potBits) * (50.0) / (1024)  -30.0; //mapping range from 0:1024 bits to -30:20 amps
+    if(abs(current)>15.0){
+        LATBbits.LATB1 = 1;
+    }
+    else if (abs(current)<=15.0){
+        LATBbits.LATB1 = 0;
+    }
+    
+    int tempBits = ADCBUF1; // extract the value from the buffer1
+    double temperature = ((tempBits * 5.0/1024.0)-0.75)*100.0+25; //changing from bits range to volts range and then to degree Celsius range
+    
+    sprintf (packet,"$MCFBK,%.2f,%.2f*", current, temperature); //create the packet to be sent
+    for(int i = 0; packet[i] != '\0'; i++) {
+            write_buffer(&TXcircularBuffer, packet[i], sizeof(TX_buffer_size)); //store packet in TXcircularBuffer
+        }
+    IEC1bits.U2TXIE=0;
+    char packetchar;
+    while(U2STAbits.UTXBF==0){
+        if(read_buffer(&TXcircularBuffer, &packetchar, sizeof(TX_buffer_size)) == 1){
+            U2TXREG = packetchar;
+            }
+            else{
+                break;
+            }
+    }
+    IEC1bits.U2TXIE=1;
 }
 
-void blink_led(void* param) { //this point is finished
-    LATBbits.LATB0 = !LATBbits.LATB0;
-}
-
-
-void read_potentiometer(void* param) {
-	ls* structure = (ls*) param;
-	char str[17]; //------>is 14 enough?
-	while (1) // repeat continuously
-	{
-		ADCON1bits.SAMP = 1; // start sampling ...
-		tmr_wait_ms(TIMER2,2); // for 100 mS
-		ADCON1bits.SAMP = 0; // start Converting
-
-		while (!ADCON1bits.DONE); // conversion done?
-			int ADCValue_pot = ADCBUF0; // yes then get ADC value
-			int ADCValu_temp = ADCBUF1; // yes then get ADC value
-			
-			//double voltage_pot = ADCValue_pot/1024.0 * 5.0; 
-			double voltage_temp = ADCValue_temp/1024.0 * 5.0; //max value is 1024, then 1024/1024 * 5 = 5 V at the maximum value
-		
-			double temperature = (voltage_temp - 0.75) *100 + 25;
-			double current = 3.0 / (0.1 * (ADCValue_pot/1024.0) );
-				
-			if (current > 15){
-				LATBbits.LATB1 = 1;
-			}
-			if else (current <= 15){
-				LATBbits.LATB1 = 0;
-			}
-			sprintf (str,"$MCFBK,%.2f,%.2f*", current, temperature);
-			//----------------------------------------------------->sending uart
-
-	} // repeat
-    
-}
-
-    
 void scheduler(heartbeat schedInfo[]) {
     int i;
     for (i = 0; i < MAX_TASKS; i++) {
         schedInfo[i].n++;
         if (schedInfo[i].n >= schedInfo[i].N) {
             schedInfo[i].f(schedInfo[i].params);
-            /*switch (i) {
-                case 0:
-                    write_char_to_lcd();
-                    break;
-                case 1:
-                    slide_controller();
-                    break;
-                case 2:
-                    blink_led();
-                    break;
-                case 3:
-                    check_button();
-                    break;
-                case 4:
-                    read_potentiometer();
-                    break;
-            }*/
             schedInfo[i].n = 0;
         }
     }
 }
 
-void adc_configuration() { //using sequential sampling
-	ADCON3bits.ADCS = 8; //----------> con 8 tad time troppo breve interferenza tra temp e corrente non switcha bene
-	ADCON1bits.ASAM = 1; // manual sampling start
-	ADCON1bits.SSRC = 7; // automatic conversion start
-	ADCON3bits.SAMC = 31; // fixed conversion time (neededOnly if SSRC = 7) // could be 0 only only if multichannel multiple sequential time //16 troppo breve  e ci sono interferenze
-	ADCON2bits.CHPS = 1; // CH0 & CH1
-	ADCHSbits.CH0SA = 2; // AN2 connected to CH0
-	ADCHSbits.CH123SA = 1; // AN3 connected to CH1
-	ADPCFG = 0xFFFF;
-	ADPCFGbits.PCFG2 = 0; // AN2 as analog
-	ADPCFGbits.PCFG3 = 0; // AN3 as analog
-	ADCON2bits.SMPI = 1; // 2 sample/convert sequences
-}
-
-int main(void) {
-    heartbeat schedInfo[MAX_TASKS];
-    
-	ls structure;
-	
+void setup(){
+    /*PINS setup*/
+    TRISBbits.TRISB0 = 0; //D3
+    TRISBbits.TRISB1 = 0; //D4
+    /*UART setup*/
+    TXcircularBuffer.buffer= TX_buffer_size;
+    RXcircularBuffer.buffer= RX_buffer_size;
+    UART_config();
+    /*ADC setup*/
+    adc_config();
+    /*PWM setup*/
+    pwm_config();
+    /*Parser setup*/
+    pstate.state = STATE_DOLLAR;
+	pstate.index_type = 0; 
+	pstate.index_payload = 0;
+    /*Wait for 1 second*/
     tmr_wait_ms(TIMER2, 1000);
-
-    TRISBbits.TRISB0 = 0;
-    TRISBbits.TRISB1 = 0; D4
-    TRISEbits.TRISE8 = 1;
-
-    tmr_setup_period(TIMER1, 5); //------------------------------------------> control loop 200 hz = 1/(0.005 s )
-
-	/////////// PWM //////////////
-
-    tmr_setup_period(TIMER1, 5);
-    PTCONbits.PTMOD = 0; // free running
-    //PTCONbits.PTCKPS = 0; // 1:1 prescaler
-	PWMCON1bits.PEN2H = 1;
-    PWMCON1bits.PEN2L = 1;
-	
-	DTCON1bits.DTAPS = 0; //prescaler of the deat time --> 00 fot TCY
-    DTCON1bits.DTA = 19; // approx 10 us
-    
-	
-	PTCONbits.PTCKPS = 0; // 1:1 prescaler
-	//PTCONbits.PTCKPS = 1; // 1:4 prescaler        
-    PTPER = 1843; // 1 kHz
-    //PTPER = 9216; // 50 Hz
-	PTCONbits.PTEN = 1; // enable pwm
-       
-    // Tcy = 543 ns ------------> in the documentation says 33.33 ns, in case we want to use 543 we must recalculate
-    
-    double duty_cycle;
-    //UART SETUP
-    U2BRG = 11; //(7372800/4) / (16/9600)-1 at 9600 is the baud rate
-    U2MODEbits.UARTEN = 1; // enable UART
-    U2STAbits.UTXEN = 1; // enable U1TX
-	/////////////////////////
-    adc_configuration();
-	
-	
-    schedInfo[0].n = 0;
-    schedInfo[0].N = 1; //------------------------------------------> depends from baudrate 9600 bps ???????? N =
-    schedInfo[0].f = read_spe_uart; 
+}
+int main(void) {
+    setup();
+    /*scheduler setup*/
+    heartbeat schedInfo[MAX_TASKS];
+    sp structure;
+    //Setting the time of each task
+    schedInfo[0].n = 0; 
+    schedInfo[0].N = 1;
+    schedInfo[0].f = RX_UART; 
     schedInfo[0].params = (void*)(&structure);
     schedInfo[1].n = 0;
-    schedInfo[1].N = 30; //------------------------------------------> how frequently we want to change the speed? Bro I think blink_led has early deadline, and without reading the potentiometer
-    schedInfo[1].f = set_voltage_DC;					// we change frequently a speed which is always the same? because higher priority than read_pot?
+    schedInfo[1].N = 30;
+    schedInfo[1].f = Set_PWM;
     schedInfo[1].params = (void*)(&structure); 
     schedInfo[2].n = 0;
-    schedInfo[2].N = 40; //------------------------------------------> point 6, it is changing state at 1/(5*100)ms = 2Hz so it is blinking at 1Hz
-    schedInfo[2].f = blink_led;
-    schedInfo[2].params = NULL;
+    schedInfo[2].N = 40;
+    schedInfo[2].f = Blink_Led;
+    schedInfo[2].params = (void*)(&structure); 
     schedInfo[3].n = 0;
     schedInfo[3].N = 40;
-    schedInfo[3].f = temp_current;
-    schedInfo[3].params = (void*)(&structure);
-   
-    
-    
-    
+    schedInfo[3].f = TX_UART;
+    schedInfo[3].params = NULL;
     structure.speed = 0;
+    structure.error_flag = 0;
     
-
+    tmr_setup_period(TIMER1, 5);
     while (1) {
         scheduler(schedInfo);
         tmr_wait_period(TIMER1);
     }
-
     return 0;
 }
 
