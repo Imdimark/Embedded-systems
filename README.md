@@ -1,5 +1,5 @@
 
-# Embedded-systems
+# Low Level Controller/driver for a Mobile robot.
 
 This repository contains the code for a microcontroller-based system, possibly a robot or a similar device, implemented on a DSPIC30F4011 board. The system uses a scheduler to manage different tasks at different frequencies. The tasks are responsible for reading and processing commands, controlling motors, managing system status, and communicating with the user.
 
