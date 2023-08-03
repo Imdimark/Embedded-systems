@@ -2,10 +2,14 @@
 
 <em>Board:  DSPIC30F4011 <em>
 
-## Exercises
+## Implementation 
 
-1) LED
-1) TIMER
+1) Timers
+2) Scheduling
+3) ADC
+4) PWM
+5) UART
+6) SPI for LCD.
 
 ## Authors
 
